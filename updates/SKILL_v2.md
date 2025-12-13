@@ -1,7 +1,6 @@
 ---
 name: resume-matrix-mapper
-description: |
-  Automatically map candidate resumes to qualification matrix tables. Use this skill when you see phrases like "map resume to matrix", "fill in the matrix", "process resume against matrix", or when user uploads both a qualification matrix and a candidate resume together.
+description: Automatically map candidate resumes to qualification matrix tables. TRIGGER PHRASES - Use this skill when you see these phrases: "map resume to matrix", "fill in the matrix", "process resume against matrix", "populate matrix with resume", or when user uploads both a qualification matrix (.docx with requirements table) and a candidate resume (.docx) together. This skill extracts qualifications from resumes and populates "Applicant Qualifications", "Applicant Years of Experience", and "PROFESSIONAL EXPERIENCE" columns by matching against "Required Qualifications" and "Labor Category Capabilities". Never modifies human-filled requirement columns.
 ---
 
 # Resume to Matrix Mapper Skill
@@ -61,7 +60,7 @@ matrix_doc = Document('/mnt/user-data/uploads/matrix_template.docx')
 if not matrix_doc.tables:
     raise ValueError("Matrix document has no tables")
 
-# Load resume
+# Load resume  
 resume_doc = Document('/mnt/user-data/uploads/candidate_resume.docx')
 
 # Verify resume has content
@@ -106,21 +105,21 @@ if not all(col in col_map for col in required_columns):
 ```python
 def extract_resume_data(resume_doc):
     """Extract structured data from resume"""
-
+    
     resume_text = '\n'.join([para.text for para in resume_doc.paragraphs])
-
+    
     # Parse work history with dates
     work_history = parse_work_experience(resume_text)
     # Returns: [{'company': str, 'title': str, 'start': date, 'end': date, 'duties': [str]}]
-
+    
     # Extract skills and technologies
     skills = extract_skills_list(resume_text)
     # Returns: ['Python', 'AWS', 'Docker', ...]
-
+    
     # Parse education
     education = parse_education(resume_text)
     # Returns: [{'degree': str, 'institution': str, 'year': int}]
-
+    
     return {
         'work_history': work_history,
         'skills': skills,
@@ -136,17 +135,17 @@ For each requirement row in the matrix:
 ```python
 for row_idx in range(1, len(main_table.rows)):  # Skip header
     row = main_table.rows[row_idx]
-
+    
     # Get requirement text
     requirement = row.cells[col_map['required_quals']].text.strip()
     capability = row.cells[col_map.get('capabilities', -1)].text.strip() if 'capabilities' in col_map else ''
-
+    
     if not requirement and not capability:
         continue  # Skip rows without requirements
-
+    
     # Combine requirement texts for matching
     search_terms = f"{requirement} {capability}".lower()
-
+    
     # Find matching resume content
     matches = find_matching_content(
         search_terms=search_terms,
@@ -154,14 +153,14 @@ for row_idx in range(1, len(main_table.rows)):  # Skip header
         skills=resume_data['skills'],
         education=resume_data['education']
     )
-
+    
     # Calculate years of relevant experience
     years = calculate_years(matches, requirement)
-
+    
     # Format the outputs
     applicant_quals = format_qualifications(matches, requirement)
     prof_exp = format_professional_experience(matches)
-
+    
     # Populate the cells
     row.cells[col_map['applicant_quals']].text = applicant_quals
     row.cells[col_map['applicant_years']].text = str(years)
@@ -178,7 +177,7 @@ for row_idx in range(1, len(main_table.rows)):
     row = main_table.rows[row_idx]
     requirement = row.cells[col_map['required_quals']].text.strip()
     applicant_quals = row.cells[col_map['applicant_quals']].text.strip()
-
+    
     if requirement and not applicant_quals:
         empty_rows.append(row_idx)
 
@@ -364,7 +363,7 @@ if "current" in job_text.lower() or "present" in job_text.lower():
 if not start_date:
     # Estimate based on typical role duration (2-3 years)
     start_date = end_date - timedelta(days=2.5*365)
-
+    
 # NOTE this in the output
 note = " (estimated duration)"
 ```
@@ -541,7 +540,7 @@ if not all(validation_checklist.values()):
 INPUT: Matrix template + Candidate resume
 
 STEP 1: Validate documents (30 sec)
-STEP 2: Map column positions (30 sec)
+STEP 2: Map column positions (30 sec)  
 STEP 3: Extract resume data (1 min)
 STEP 4: Match & populate each row (2-3 min per row)
 STEP 5: Validate & save (30 sec)
